@@ -11,15 +11,23 @@ Editor/ShurikenDuplicateWindow.cs
 UnityのMenu > Window に Shuriken Duplicate が追加されます。
 
 ## 利用方法
-まず、配置したいオブジェクトを作成します（なんでも良いです、中に入れ子でオブジェクトを配置しても良いです）。
-オブジェクトをいくつかCtrl+Dで自分でコピー(最低でも2個必要)して好きな配置で並べます。
-例えば2列並べます。
-(2列に並べたオブジェクト名がそれぞれ例えば一列目が1,2で2列目が3,4とするとHierarchy上の並び順も1,2,3,4の順に並んでいる必要があります。)
-作成したオブジェクトをすべて選択した状態で、
-UnityのMenu > Window > Shuriken Duplicate を選択しウィンドウを開いてください。
-選択しているオブジェクト含め合計で何個のオブジェクトが必要か「配置数」に入力してください。
-「オブジェクト作成」ボタンを押すと複製されます。
-やり直したい場合はCtrl+Zしてください。
+### 1
+![1](https://user-images.githubusercontent.com/45710234/49687150-64104000-fb42-11e8-837b-1e6a813ca488.png)  
+まず、配置したいオブジェクトを作成します（なんでも良いです、中に入れ子でオブジェクトを配置しても良いです）。  
+オブジェクトをいくつかCtrl+Dで自分でコピー(最低でも2個必要)して好きな配置で並べます。  
+例えば2列並べます。  
+(2列に並べたオブジェクト名がそれぞれ例えば一列目がcubea,cubea (1),cubea (2),cubea (3)で2列目がcubea (4)とするとHierarchy上の並び順もcubea,cubea (1),cubea (2),cubea (3),cubea (4)の順に並んでいる必要があります。)  
+### 2
+![2](https://user-images.githubusercontent.com/45710234/49687176-b2254380-fb42-11e8-8558-b56159d7d663.png)  
+作成したオブジェクトをすべて選択した状態で、  
+UnityのMenu > Window > Shuriken Duplicate を選択しウィンドウを開いてください。  
+### 3
+![3](https://user-images.githubusercontent.com/45710234/49687191-eef13a80-fb42-11e8-8a38-0d94add7c33a.png)  
+選択しているオブジェクト含め合計で何個のオブジェクトが必要か「配置数」に入力してください。  
+「オブジェクト作成」ボタンを押すと複製されます。  
+### 4
+![4](https://user-images.githubusercontent.com/45710234/49687194-04fefb00-fb43-11e8-8199-6bd4cb51ac77.png)  
+やり直したい場合はCtrl+Zしてください。  
 
 ## 設定項目
 ### 親
