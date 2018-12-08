@@ -16,18 +16,23 @@ using System.Collections.Generic;
 class ShurikenDuplicate : EditorWindow
 {
     /**
+     * 選択したオブジェクト
+     */
+    GameObject[] sortedSelectedGameObjects = new GameObject[0];
+
+    /**
      * オブジェクト生成の設定値
      */
     string makeObjectName = "New GameObject";
     int makeObjectIndex = 0;
-    int makeObjectNameIndex = 0;
     Vector3 makeObjectPos;
     Vector3 makeObjectScale = new Vector3(1.0f, 1.0f, 1.0f);
     Vector3 makeObjectRotate;
     GameObject selectedParentObject;
-    GameObject selectedLastObject;
+    GameObject selectedFirstObject;
     int makeObjectNum = 1;
-    
+    bool isAlsoUpdateSelectedObject = true;
+
 
     /**
      * オブジェクトを規則的に並べるための設定値
@@ -117,6 +122,13 @@ class ShurikenDuplicate : EditorWindow
 
         EditorGUILayout.Space();
 
+        if (sortedSelectedGameObjects.Length > 0)
+        {
+            isAlsoUpdateSelectedObject = EditorGUILayout.Toggle("選択オブジェクト更新", isAlsoUpdateSelectedObject);
+        }
+
+        EditorGUILayout.Space();
+
 
         // ボタンをGUIに配置、ボタン押下でオブジェクト作成する
         if (GUILayout.Button("オブジェクト作成"))
@@ -133,14 +145,14 @@ class ShurikenDuplicate : EditorWindow
     private void SetInitValues(GameObject[] selectedGameObjects)
     {
         // 選択したオブジェクトはヒエラルキー上の並び順で処理する
-        GameObject[] sortedGameObjects = new GameObject[selectedGameObjects.Length];
+        sortedSelectedGameObjects = new GameObject[selectedGameObjects.Length];
         var itemTable = new SortedDictionary<int, GameObject>();
         foreach (GameObject obj in selectedGameObjects)
         {
             itemTable.Add(obj.transform.GetSiblingIndex(), obj);
 
         }
-        itemTable.Values.CopyTo(sortedGameObjects, 0);
+        itemTable.Values.CopyTo(sortedSelectedGameObjects, 0);
 
 
         const int INDEX_OF_A = 0;
@@ -150,14 +162,20 @@ class ShurikenDuplicate : EditorWindow
         bool[] isSetVecPos = new bool[3];
         int[] vecIndex = new int[3]; // それぞれのベクトルの始点終点が見つかったindex
         bool isLastDiffPos = false;
-        Vector3 lastDiffPos = new Vector3();
+        Quaternion lastDiffPos = new Quaternion();
         GameObject lastObj = null;
 
-        for (int i = 0; i < sortedGameObjects.Length; i++)
+        for (int i = 0; i < sortedSelectedGameObjects.Length; i++)
         {
 
-            GameObject obj = sortedGameObjects[i];
+            GameObject obj = sortedSelectedGameObjects[i];
             Vector3 pos = obj.transform.localPosition;
+
+            // 最初のオブジェクトと同じものを複製するので記憶しておく
+            if (i==0)
+            {
+                selectedFirstObject = obj;
+            }
 
             // 選択したオブジェクトの並び方をジグザグの二本のベクトルで表現する
             // x,y,z軸の値の変化を見ていずれかの軸で折り返したら次のベクトルの開始と判断する
@@ -176,24 +194,11 @@ class ShurikenDuplicate : EditorWindow
             // 並びが折り返しているか調べ、ベクトルAの終点 & ベクトルBの始点,ベクトルBの終点を見つける
             if (lastObj != null)
             {
-                Vector3 diffPos = obj.transform.localPosition - lastObj.transform.localPosition;
+                Quaternion diffPos = Quaternion.Euler(obj.transform.localPosition - lastObj.transform.localPosition);
                 if (isLastDiffPos)
                 {
-                    bool orikaesi = false;
-                    if (diffPos.x * lastDiffPos.x < 0)
-                    {
-                        orikaesi = true;
-                    }
-                    else if (diffPos.y * lastDiffPos.y < 0)
-                    {
-                        orikaesi = true;
-                    }
-                    else if (diffPos.z * lastDiffPos.z < 0)
-                    {
-                        orikaesi = true;
-                    }
-
-                    if (orikaesi)
+                    float angle = Quaternion.Angle(diffPos, lastDiffPos);
+                    if (angle >= 0.15) // 値は適当 折り返し
                     {
                         if (!isSetVecPos[INDEX_OF_B])
                         {
@@ -214,7 +219,7 @@ class ShurikenDuplicate : EditorWindow
             }
 
             // 最後
-            if (i + 1 >= sortedGameObjects.Length)
+            if (i + 1 >= sortedSelectedGameObjects.Length)
             {
                 // 折り返しが最後までなければ最後の場所を折り返しと判断
                 if (!isSetVecPos[INDEX_OF_B]) // この場合はベクトルAしかない
@@ -241,7 +246,6 @@ class ShurikenDuplicate : EditorWindow
 
             lastObj = obj;
         }
-        selectedLastObject = lastObj;
 
         // 並べ方が決まる
         slideNumA = vecIndex[INDEX_OF_B] - vecIndex[INDEX_OF_A];
@@ -263,21 +267,61 @@ class ShurikenDuplicate : EditorWindow
             slideVectorB = (vecPos[INDEX_OF_C] - vecPos[INDEX_OF_B]) / slideNumB;
         }
 
-        // 最後のオブジェクトと同じ名前(連番)で複製するイメージ
+        // 最初のオブジェクトと同じ名前(連番)で複製するイメージ
         Regex reg = new Regex(@" \((?<number>[0-9]+)\)");
-        string name = reg.Replace(selectedLastObject.name, "");
+        string name = reg.Replace(selectedFirstObject.name, "");
         makeObjectName = name;
-        Match match = reg.Match(selectedLastObject.name);
-        if (match.Success)
-        {
-           makeObjectNameIndex = int.Parse(match.Groups["number"].Value) + 1 - makeObjectIndex;
-        }
 
-        // 最後のオブジェクトと同じ設定で複製する
-        makeObjectScale = selectedLastObject.transform.localScale;
-        makeObjectRotate = selectedLastObject.transform.localRotation.eulerAngles;
+        // 最初のオブジェクトと同じ設定で複製する
+        makeObjectScale = selectedFirstObject.transform.localScale;
+        makeObjectRotate = selectedFirstObject.transform.localRotation.eulerAngles;
 
         Debug.Log(logPrefix + "選択したオブジェクトをもとに初期値をセットしました");
+    }
+
+    /**
+     * 設定とオブジェクトのindexをもとに配置を決定する
+     */
+    private Vector3 CalcPosition(int index)
+    {
+        // 規則的にオブジェクトを並べたい
+        int cycleNum = 0;
+        int surplus = 0;
+        if (slideNumA + slideNumB != 0) // 0除算エラー回避
+        {
+            cycleNum = index / (slideNumA + slideNumB);
+            surplus = index % (slideNumA + slideNumB);
+        }
+        int surplusA;
+        int surplusB;
+        if (surplus > slideNumA)
+        {
+            surplusA = slideNumA;
+            surplusB = surplus - slideNumA;
+        }
+        else
+        {
+            surplusA = surplus;
+            surplusB = 0;
+        }
+        int addANum = (cycleNum * slideNumA) + surplusA;
+        int addBNum = (cycleNum * slideNumB) + surplusB;
+        Vector3 pos = makeObjectPos + slideVectorA * addANum + slideVectorB * addBNum;
+        return pos;
+    }
+
+    /**
+     * ベースの名前とオブジェクトのindexをもとにUnityぽい命名規則の名前を決定する
+     * ex. hoge, hoge (1), hoge (2)
+     */
+    private string CalcName(string makeObjectName, int index)
+    {
+        string objectName = makeObjectName;
+        if (index != 0)
+        {
+            objectName += " (" + index + ")";
+        }
+        return objectName;
     }
 
     /**
@@ -293,31 +337,45 @@ class ShurikenDuplicate : EditorWindow
         }
         if (makeObjectNum < 0)
         {
-            UnityEditor.EditorUtility.DisplayDialog("修正してください", "配置オブジェクト数は整数を入力してください", "OK");
+            UnityEditor.EditorUtility.DisplayDialog("修正してください", "配置数は整数を入力してください", "OK");
             return;
         }
         if (makeObjectNum <= makeObjectIndex)
         {
-            UnityEditor.EditorUtility.DisplayDialog("修正してください", "配置オブジェクト数は「何個目から作成するか」より大きい数字を入力してください", "OK");
+            UnityEditor.EditorUtility.DisplayDialog("修正してください", "配置数は「何個目から作成するか」より大きい数字を入力してください", "OK");
+            return;
+        }
+        if (sortedSelectedGameObjects.Length == 0 && objType == OBJ_TYPE.SAME)
+        {
+            UnityEditor.EditorUtility.DisplayDialog("修正してください", "オブジェクトがされていないのでSAMEは選べません", "OK");
             return;
         }
 
+        // 選択したオブジェクトも配置を綺麗し同じ設定にする
+        if (isAlsoUpdateSelectedObject && sortedSelectedGameObjects.Length > 0)
+        {
+            for (int i=0; i<sortedSelectedGameObjects.Length; i++)
+            {
+                Undo.RecordObject(sortedSelectedGameObjects[i].transform, "Update Selected GameObject transform"); 
+                Undo.RecordObject(sortedSelectedGameObjects[i], "Update Selected GameObject");
+                sortedSelectedGameObjects[i].transform.localPosition = CalcPosition(i);
+                sortedSelectedGameObjects[i].transform.localScale = makeObjectScale;
+                sortedSelectedGameObjects[i].transform.localRotation = Quaternion.Euler(makeObjectRotate);
+                sortedSelectedGameObjects[i].name = CalcName(makeObjectName, i);
+            }
+        }
 
-
+        // 新しくオブジェクト作成
         for (int i = makeObjectIndex; i < makeObjectNum; i++) { // UIで入力した数だけ作ります
 
-            // 複数オブジェクト作るときの名前をUnityぽい命名規則にしておく
-            string objectName = makeObjectName;
-            int nameIndex = i + makeObjectNameIndex;
-            if (i != 0) {
-                objectName +=  " (" + nameIndex + ")";
-            }
+            // 名前をUnityぽい命名規則にしておく
+            string objectName = CalcName(makeObjectName, i);
 
             //新しいゲームオブジェクトを作成、その事をUndoに記録
             GameObject newGameObject;
             if (objType == OBJ_TYPE.SAME)
             {
-                newGameObject = GameObject.Instantiate(selectedLastObject);
+                newGameObject = GameObject.Instantiate(selectedFirstObject);
                 newGameObject.name = objectName;
             }
             else if (objType == OBJ_TYPE.CUBE)
@@ -339,31 +397,7 @@ class ShurikenDuplicate : EditorWindow
             }
 
 
-            // 規則的にオブジェクトを並べたい
-            int cycleNum = 0;
-            int surplus = 0;
-            if (slideNumA + slideNumB != 0) // 0除算エラー回避
-            {
-                cycleNum = i / (slideNumA + slideNumB);
-                surplus = i % (slideNumA + slideNumB);
-            }
-            int surplusA;
-            int surplusB;
-            if (surplus > slideNumA)
-            {
-                surplusA = slideNumA;
-                surplusB = surplus - slideNumA;
-            }
-            else
-            {
-                surplusA = surplus;
-                surplusB = 0;
-            }
-            int addANum = (cycleNum * slideNumA) + surplusA;
-            int addBNum = (cycleNum * slideNumB) + surplusB;
-            Vector3 pos = makeObjectPos + slideVectorA * addANum + slideVectorB * addBNum;
-            newGameObject.transform.localPosition = pos;
-
+            newGameObject.transform.localPosition = CalcPosition(i); // 規則的にオブジェクトを並べたい
             newGameObject.transform.localScale = makeObjectScale;
             newGameObject.transform.localRotation = Quaternion.Euler(makeObjectRotate); 
         }
