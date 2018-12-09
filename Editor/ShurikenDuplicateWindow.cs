@@ -11,7 +11,7 @@ using System.Collections.Generic;
  * Hierarchy上で2オブジェクト以上選択した状態ならそれの並べ方で作成する
  * This File licensed under the terms of the MIT license
  * Copyright (c) 2018 vrshuriken
- * <version>1.0.0</version>
+ * <version>1.0.1</version>
  */
 class ShurikenDuplicate : EditorWindow
 {
