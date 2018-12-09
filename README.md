@@ -5,6 +5,9 @@ Unity Extending the Editor. Easily duplicate game object with the same arrangeme
 規則的に多量のオブジェクトを複製し並べたいときに利用します。
 位置は同じ規則の配置にした上ですべて同じ大きさ・向き・名前にします。
 
+## 動作確認環境
+Unity 5.6.3p1
+
 ## 導入方法
 Editor/ShurikenDuplicateWindow.cs
 をEditorフォルダごとUnityのAssets直下にコピーしてください。
