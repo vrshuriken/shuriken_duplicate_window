@@ -161,8 +161,8 @@ class ShurikenDuplicate : EditorWindow
         Vector3[] vecPos = new Vector3[3];// ベクトルAの始点,ベクトルAの終点 & ベクトルBの始点,ベクトルBの終点
         bool[] isSetVecPos = new bool[3];
         int[] vecIndex = new int[3]; // それぞれのベクトルの始点終点が見つかったindex
-        bool isLastDiffPos = false;
-        Quaternion lastDiffPos = new Quaternion();
+        bool isSetLastVec = false;
+        Vector3 lastVec = new Vector3();
         GameObject lastObj = null;
 
         for (int i = 0; i < sortedSelectedGameObjects.Length; i++)
@@ -194,11 +194,16 @@ class ShurikenDuplicate : EditorWindow
             // 並びが折り返しているか調べ、ベクトルAの終点 & ベクトルBの始点,ベクトルBの終点を見つける
             if (lastObj != null)
             {
-                Quaternion diffPos = Quaternion.Euler(obj.transform.localPosition - lastObj.transform.localPosition);
-                if (isLastDiffPos)
+                Vector3 vec = obj.transform.localPosition - lastObj.transform.localPosition;
+                if (isSetLastVec)
                 {
-                    float angle = Quaternion.Angle(diffPos, lastDiffPos);
-                    if (angle >= 0.15) // 値は適当 折り返し
+                    // オブジェクトの並べ方の角度angle(とその軸axis)を調べる。一直線ならangle=0。
+                    float angle;
+                    Vector3 axis;
+                    Quaternion qua = Quaternion.FromToRotation(vec, lastVec);
+                    qua.ToAngleAxis(out angle, out axis);
+
+                    if (angle >= 40.0) // 値は適当。40度くらいで折り返しとみなす。
                     {
                         if (!isSetVecPos[INDEX_OF_B])
                         {
@@ -214,8 +219,8 @@ class ShurikenDuplicate : EditorWindow
                         }
                     }
                 }
-                lastDiffPos = diffPos;
-                isLastDiffPos = true;
+                lastVec = vec;
+                isSetLastVec = true;
             }
 
             // 最後
